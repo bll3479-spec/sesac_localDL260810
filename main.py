@@ -152,6 +152,7 @@ def evaluate(model, loader, criterion, optimizer, device):
 
 
 if __name__ == '__main__':
+
     #데이터를 로딩하는 함수
     train_loader, valid_loader = get_dataloader()
 
@@ -160,16 +161,16 @@ if __name__ == '__main__':
 
 
     #GPU 설정
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     model = model.to(device)
 
     #에포크마다 train_one_epoch랑 eval 함수를 돌리면 됨, 이후로 기록&save
     #오차 함수, 최적화 함수, 히스토리 딕셔너리 추가(wandb처럼), 에포크 설정
-    EPOCHS = 10
+    EPOCHS = 1
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters())
-
     history = {'train_loss':[], 'train_acc':[], 'valid_loss':[], 'valid_acc':[]}
+    best_acc = 0.0
 
     for e in range(EPOCHS):
         train_loss, train_acc = train_one_epoch(model, train_loader, criterion = criterion, optimizer=optimizer, device = device)
@@ -185,7 +186,7 @@ if __name__ == '__main__':
             torch.save(model.state_dict(), save_path)
 
             print(f'최고 기록! {e+1}회 에포크 --> {valid_acc:.2f}')
-    return history, best_acc
+    #return history, best_acc
 
     #images, labels = next(iter(train_loader))
     #print(labels.size())
