@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 def draw_plot(history, save_path = r'./result.jpg'):
     #히스토리 길이 체크
     #history(train_loss, train_acc, valid_loss, valid_acc)
-    epochs = range(1, len(history['train_acc']+1))
+    epochs = range(1, len(history['train_acc'])+1)
 
     fig, ax = plt.subplots(1, 2, figsize=(14,6))
 
