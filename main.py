@@ -17,6 +17,7 @@ from utils.DataLoader import get_dataloader
 from models.vgg import get_vgg_model
 from train import train_one_epoch
 from eval import evaluate
+from utils.graph import draw_plot
 
 from tqdm import tqdm
 
@@ -75,6 +76,8 @@ if __name__ == '__main__':
     history = {'train_loss':[], 'train_acc':[], 'valid_loss':[], 'valid_acc':[]}
     #model_history: 훈련이 끝났을 때의 총 history 반환
     model_history = run_epoch(model, history, EPOCHS=50)
+
+    draw_plot(history, save_path=r'./result.jpg')
 
     
     #return history, best_acc
