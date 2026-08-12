@@ -14,34 +14,17 @@ import shutil           #.sh / .bash
 
 
 from ultralytics import YOLO
-
+from models.yolo import yolo_train
 
 if __name__ == '__main__':
 
-    # train = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\peach_dataset\YoloDataset\labels\valid'
-    # paths = [os.path.join(train, x) for x in os.listdir(train)]
-
-    # for i in paths:
-    #     t = i.split('\\')[-1] + '.txt'
-    #     os.rename(i, os.path.join(train, t))
-
-
-    #YOLO 라이브러리 세팅(pip)
-    yaml_path = r'./yolo_setting.yaml'
-    #YOLO 훈련
-    result = YOLO('yolov8n.pt').train(
-                data=yaml_path,  
-                epochs = 50, 
-                imgsz = 640, 
-                batch=16, 
-                save = True,
-                device = 0, 
-                plots = True,
-                name = 'peach_train01')
-    print('훈련 완료')
-
+    yolo_train()
     #YOLO 평가
-
+    # source = r'./test_peach.jpg'      #복숭아 이미지
+    # model = YOLO('./runs/detect/peach_train01-5/weights/best.pt')
+    # model.predict(source = source,
+    #               device = 0,
+    #               save = True)
 
 
 #딥러닝 시퀀스
