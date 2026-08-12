@@ -1,0 +1,66 @@
+
+if __name__ == '__main__':
+#라벨 옮기기
+    
+#1. 이미지 폴더 (image-tr,val)를 목록화
+    total_file_list = []
+    #1-1.train
+    train_file = []
+    train_file_list = []
+    t_folder = r'./Data/peach_dataset/peach_image/train'
+    for i in os.listdir(t_folder):
+        train_file.append(os.path.join(t_folder, i))
+    #print(image_file_list)
+    for i in train_file:
+        train_f = i.split('\\')[-1]
+        #print(train_f)
+        train_file_list.append(train_f)
+        #print(train_file_list)
+
+    #1-2. val                                               **함수화 생각해보삼(길다.끊어라)
+    valid_file = []
+    valid_file_list = []
+    v_folder = r'./Data/peach_dataset/peach_image/valid'
+    for i in os.listdir(v_folder):
+        valid_file.append(os.path.join(v_folder,i))
+    #print(valid_file_list)
+    for i in valid_file:
+        valid_f = i.split('\\')[-1]
+        #print(valid_f)
+        valid_file_list.append(valid_f)
+        #print(valid_file_list)
+    #print(valid_file_list)
+
+    #2. 비교하기(만든 리스트에서 일련번호 == 라벨) *if in split
+    #2-1. 모아둔 이미지의 끝 번호가 train_file_list와 동일한가? 그렇다면 정답을 모으고, yolodataset/images/train으로 copy2
+    #2-2. 모아둔 이미지의 끝 번호가 valid_file_list와 동일한가?
+
+    label_txt_list = []
+    split_txt_list = []
+
+    #txt 리스트화 
+    json_folder = r'.\Data\peach_dataset\peach_label\yolo_txt_label'
+    for i in os.listdir(json_folder):
+        label_txt_list.append(os.path.join(json_folder,i))
+    #print(label_txt_list)
+    #print(len(label_txt_list))
+    for i in label_txt_list:
+        splited= i.split('\\')[-1]
+        split_txt_list.append(splited)
+    print(split_txt_list)
+    print(len(split_txt_list))
+
+    #리스트 안에 있는 '원자'가 같은가를 잡아야함
+    #확장자명을 무시하고 '일련번호'로 필터링
+    #split_txt_list와 total_file_list에서 번호 비교
+    yolo_train_list = []
+    yolo_valid_list = []
+
+    #-1. total file list와 split txt list에서 번호만 추출
+    #-2. 추출한 번호를 비교한 후 
+
+
+
+    #3. (shutil 사용해서 copy2)
+    
+
