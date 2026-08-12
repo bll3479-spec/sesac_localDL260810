@@ -13,43 +13,34 @@ import shutil           #.sh / .bash
 #     labels/valid/*.txt
 
 
+from ultralytics import YOLO
 
 
 if __name__ == '__main__':
-#라벨 옮기기
 
-    #1. 원본 소스
-    source_dir = r'./Data\peach_dataset\peach_label\yolo_txt_label'
-    source_files = [os.path.join(source_dir, x) for x in os.listdir(source_dir)]
-    #print(source_files)
-    
-    #2. train_목록, valid_목록
-    train_image_pth = r'./Data\peach_dataset\peach_image\train'
-    valid_image_pth = r'./Data\peach_dataset\peach_image\valid'
-    train_list = [x for x in os.listdir(train_image_pth)]
-    valid_list = [x for x in os.listdir(valid_image_pth)]
+    # train = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\peach_dataset\YoloDataset\labels\valid'
+    # paths = [os.path.join(train, x) for x in os.listdir(train)]
 
-    #print(train_list)
-    #print(valid_list)
-    
+    # for i in paths:
+    #     t = i.split('\\')[-1] + '.txt'
+    #     os.rename(i, os.path.join(train, t))
 
-    count = 0
-    train_target = r'.\Data\peach_dataset\YoloDataset\labels\train'
-    valid_target = r'.\Data\peach_dataset\YoloDataset\labels\valid'
-    #3.목적지(train/valid) 전송
-    for target in source_files:
-        f = target.split('\\')[-1].split('.')[0]             #일련번호 생성
 
-        for t in train_list:
-            if f in t:
-                #print(f'{f} -> train')
-                print(target, '-->', os.path.join(train_target, f))
-                shutil.copy2(target, os.path.join(train_target, f))
-        for v in valid_list:
-            if f in v:
-                f = f + '.txt'
-                shutil.copy2(target, os.path.join(valid_target, f))
+    #YOLO 라이브러리 세팅(pip)
+    yaml_path = r'./yolo_setting.yaml'
+    #YOLO 훈련
+    result = YOLO('yolov8n.pt').train(
+                data=yaml_path,  
+                epochs = 50, 
+                imgsz = 640, 
+                batch=16, 
+                save = True,
+                device = 0, 
+                plots = True,
+                name = 'peach_train01')
+    print('훈련 완료')
 
+    #YOLO 평가
 
 
 

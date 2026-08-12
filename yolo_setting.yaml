@@ -1,0 +1,6 @@
+path: C:\Users\user\Desktop\Git\sesac_localDL260810\Data\peach_dataset\YoloDataset
+train: ./images/train
+val: ./images/valid
+
+names:
+  0 : peach
