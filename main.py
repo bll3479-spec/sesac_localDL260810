@@ -19,8 +19,37 @@ from models.yolo import yolo_train
 from utils import augmentation as aug
 import albumentations as A
 
+from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+
+def count_params(model):
+    #requries_grad: True(훈련시킬 것, 변경 가능) , False(훈련 안 시킴, 변경 불가)
+    #p.numel(파라미터의 구성요소 개수)
+    total = sum(p.numel() for p in model.parameters())
+    trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f'전체 파라미터: {total:,}')
+    print(f'훈련 가능 파라미터: {trainable:,}')
+    print(f'동결 파라미터: {total - trainable:,}')
+
 
 if __name__ == '__main__':
+    model = fasterrcnn_resnet50_fpn(weights = FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
+    #Faster RCNN
+    #Backbone => 이미지 특징 추출 => 저수준 특징 추출(ResNet)
+    #RPN(Resion Proposal Networks) => Bounding Box의 후보 제안
+    #ROI Head => RPN을 보고 분류 수행, bbox의 사이즈 보정**
+    #Faster RCNN : 분류하고자 하는 객체의 개수 (+1 해야함, 얘는 배경까지(2-stage 모델이니까))
+    print(model)
+    
+    #ROI Head 변경
+    in_feautures = model.roi_heads.box_predictor.cls_score.in_features      #(모델 피쳐값 임시저장용)
+
+    #ROI Head도 2개의 부속품이 있음 -> Cls_score(분류) / Bbox_predictor(바운딩 박스 찾기)
+    model.roi_heads.box_predictor = FastRCNNPredictor(in_feautures, num_classes = 1+1)
+    count_params(model)
+
+
+
 
     #yolo_train()
     #YOLO 평가
@@ -30,17 +59,7 @@ if __name__ == '__main__':
     #               device = 0,
     #               save = True)
 
-    #실행 연습
-    # fig, ax = plt.subplots(1, 2)
-    # #image = cv2.flip(image, 1)
-    # image = r'./Data/YoloAugmentation/images/train/A220120XX_10306.jpg'
-    # image = cv2.imread(image)
-    # print(image.shape)
-    # ax[0].imshow(image)
-    # image, label = aug.flip_horizontal(image, None)
-    # ax[1].imshow(image)
-    # plt.show()
-    # print(label)
+
 
     #1.증강용 폴더 생성
     #aug.create_folder(src_folder= r'./Data/peach_dataset/YoloDataset', dst_folder= r'./Data/YoloAugmentation')
@@ -54,27 +73,9 @@ if __name__ == '__main__':
     # #4. 3의 결과 저장
     # aug.save_yolo_label()
 
-    #5. (2,3,4 포함)최종 증강 파이프라인
+    #5. (2,3,4 포함) 최종 증강 파이프라인
     #aug.pipe_augmentation()
 
-    #albumentations 적용
-    transform = A.Compose([
-    A.RandomCrop(width=256, height=256),
-    A.HorizontalFlip(p=0.5),
-    A.RandomBrightnessContrast(p=0.2),
-])
-    image = r'./Data/YoloAugmentation/images/train/A220120XX_10306.jpg'
-
-    # Read an image with OpenCV and convert it to the RGB colorspace
-    image = cv2.imread(image)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    # Augment an image
-    transformed = transform(image=image)
-    transformed_image = transformed["image"]
-
-    plt.imshow(transformed_image)
-    plt.show()
 
 
 

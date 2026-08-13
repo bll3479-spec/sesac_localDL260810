@@ -119,3 +119,37 @@ def flip_vertical(image, label):
     image = cv2.flip(image, 0)
     label = [(cls, cx, 1.0-cy, w, h) for cls, cx, cy, w, h in label]
     return image, label
+
+import albumentations as A
+
+def applay_albumentation():
+    #실행 연습
+    # fig, ax = plt.subplots(1, 2)
+    # #image = cv2.flip(image, 1)
+    # image = r'./Data/YoloAugmentation/images/train/A220120XX_10306.jpg'
+    # image = cv2.imread(image)
+    # print(image.shape)
+    # ax[0].imshow(image)
+    # image, label = aug.flip_horizontal(image, None)
+    # ax[1].imshow(image)
+    # plt.show()
+    # print(label)
+    #albumentations 적용
+
+    transform = A.Compose([
+    A.RandomCrop(width=256, height=256),
+    A.HorizontalFlip(p=0.5),
+    A.RandomBrightnessContrast(p=0.2),
+])
+    image = r'./Data/YoloAugmentation/images/train/A220120XX_10306.jpg'
+
+    # Read an image with OpenCV and convert it to the RGB colorspace
+    image = cv2.imread(image)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Augment an image
+    transformed = transform(image=image)
+    transformed_image = transformed["image"]
+
+    plt.imshow(transformed_image)
+    plt.show()
