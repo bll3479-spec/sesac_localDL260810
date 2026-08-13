@@ -138,7 +138,7 @@ def move_label_datas(source_dir, train_image_pth, valid_image_pth, train_target,
     #valid_target = r'.\Data\peach_dataset\YoloDataset\labels\valid'
     #3.목적지(train/valid) 전송
     for target in source_files:
-        f = target.split('\\')[-1].split('.')[0]             #일련번호 생성
+        f = target.split('\\')[-1].split('.')[0] + '.txt'             #일련번호 생성
 
         for t in train_list:
             if f in t:
