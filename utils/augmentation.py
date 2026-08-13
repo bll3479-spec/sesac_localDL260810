@@ -122,7 +122,7 @@ def flip_vertical(image, label):
 
 import albumentations as A
 
-def applay_albumentation():
+def apply_albumentation():
     #실행 연습
     # fig, ax = plt.subplots(1, 2)
     # #image = cv2.flip(image, 1)
