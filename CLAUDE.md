@@ -33,6 +33,10 @@ eval.py             # evaluate() - 분류 모델용 검증 루프
 main.py             # 현재 작업 중인 실험 스크립트 (자주 바뀜, 아래 참고)
 PreVersion/old_main.py  # CIFAR-10 분류 실험의 예전 메인 스크립트
 yolo_setting.yaml   # Ultralytics YOLO data yaml (path/train/val/names)
+
+preprocessing/
+  faster_preprocessing.py  # Faster R-CNN용 NutDataset(Dataset) - 견과류(nuts) 데이터셋, 아래 참고
+  yolo_preprocessing.py    # YOLO용 전처리 스크립트 (아직 상세 리뷰 안 함)
 ```
 
 ## 데이터 흐름 연결 (old_main.py 기준, 분류 실험)
@@ -46,6 +50,18 @@ utils/graph.py        draw_plot()      →  result.jpg 저장
 
 ## main.py 현재 상태
 계속 실험적으로 바뀌는 스크립트. 현재는 Faster R-CNN(torchvision) 모델을 로드해서 구조/파라미터 수 확인하는 코드가 있고, YOLO 학습/증강 파이프라인 호출부는 대부분 주석 처리되어 있음. `count_params()`로 전체/훈련가능/동결 파라미터 수를 출력.
+
+## preprocessing/faster_preprocessing.py — NutDataset
+Faster R-CNN 학습용 커스텀 `Dataset`. peach와 별개로 **견과류(nuts) 15개 클래스**(도토리/밤/은행/피칸/호박씨/마카다미아/브라질너트/잣/호두/해바라기씨/밤송이/아몬드/피스타치오/땅콩/캐슈넛) 데이터셋을 다룸. `NUTS_CATEGORY_MAP`으로 원본 COCO `category_id`(208~222)를 Faster R-CNN이 요구하는 1~15 연속 정수 라벨로 변환.
+
+- `__init__(image_dir, label_dir, transforms=None)`: 생성 시점에 `extract_label_data()`를 호출해 라벨 폴더(JSON, 이미지 1장당 파일 1개, COCO 포맷)를 전부 파싱하고 `self.samples`(이미지 경로+boxes+labels)를 미리 채워둠 (lazy loading 아님).
+- `extract_label_data()`: `data['images'][0]['file_name']`으로 이미지 경로를 얻고, `data['annotations']`를 순회하며 COCO `[x,y,w,h]` → `[x1,y1,x2,y2]`로 변환. 폭/높이가 0 이하인 박스, `NUTS_CATEGORY_MAP`에 없는 category_id, 유효 박스가 하나도 없는 이미지는 각각 스킵.
+- `__getitem__()`: torchvision `FasterRCNN`이 기대하는 target 딕셔너리(`boxes`, `labels`, `image_id`, `area`, `iscrowd`)를 구성해서 반환. `iscrowd`는 항상 0으로 고정(원본 라벨에 crowd 정보 없음).
+
+**알려진 이슈**
+- `__getitem__()` 74행에서 `transforms=None`이 기본값인데도 `self.transform(image)`를 무조건 호출 — transform을 안 넘기고 생성하면 `TypeError: 'NoneType' object is not callable` 발생.
+- `extract_label_data()`의 `with open(file_path, 'r', ...) as f:`가 바깥 `for f in sorted(os.listdir(label_dir))`의 루프 변수 `f`(파일명 문자열)를 파일 핸들로 덮어씀. 지금은 이후 바깥 `f`를 다시 안 쓰므로 동작엔 문제없지만 가독성 저하 및 잠재적 버그 소지.
+- `data['images'][0]`만 사용 — JSON 하나에 이미지가 여러 개 들어있는 표준 COCO 포맷이면 첫 번째만 처리됨. "이미지 1장당 JSON 1개"라는 이 프로젝트만의 전제에 의존.
 
 ## 알려진 이슈 / TODO
 - **utils/augmentation.py `pipe_augmentation()`**
