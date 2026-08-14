@@ -36,11 +36,14 @@ NUTS_CLASS_NAMES = {v: k_name for k_name, v in {
 class NutDataset(Dataset):
     #데이터셋을 만들 때 필요한 핵심 정보: 이미지, 라벨 폴더의 경로 / transform
     #transforms=None default 설정
-    def __init__(self, image_dir, label_dir, transforms = None):
+    def __init__(self, image_dir, label_dir):
         self.image_dir = image_dir
-        self.transform = transforms
+        self.transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5),(0.5))
+        ])
         self.label_dir = label_dir
-        #
+        
         self.samples = []
         self.extract_label_data(self.label_dir)     #json에서 이미지와 라벨의 한 쌍을 만들어주려고.
 
@@ -127,12 +130,12 @@ def copy_split_files(file_list, image_dir, label_dir, out_image_dir, out_label_d
         file_name = os.path.splitext(f)[0] + '.jpg'
         src_img = os.path.join(image_dir,file_name)
         if os.path.exists(src_img):
-            #shutil.copy2(src_img, os.path.join(out_image_dir, file_name))
-            print(f'{src_img}를 {os.path.join(out_image_dir, file_name)}로')    
+            shutil.copy2(src_img, os.path.join(out_image_dir, file_name))
+            #print(f'{src_img}를 {os.path.join(out_image_dir, file_name)}로')    
         src_lab = os.path.join(label_dir, f)
         if os.path.exists(src_lab):
-            #shutil.copy2(src_lab, os.path.join(out_label_dir, f))
-            print(f'{src_lab}를 {os.path.join(out_label_dir, f)}로')            
+            shutil.copy2(src_lab, os.path.join(out_label_dir, f))
+            #print(f'{src_lab}를 {os.path.join(out_label_dir, f)}로')            
 
 #train, valid 쪼갠 뒤 각 폴더에 맞게 copy_split_files 수행
 def split_json_files(label_dir, ratio=0.8, seed = 42):
@@ -149,18 +152,18 @@ def get_nuts_dataloader(image_dir, label_dir):
     Nuts 이미지와 라벨을 바탕으로. train_image, train_label, valid_image, valid_label 추출함.
     앞서 정의한 copy_split_files, split_json_files를 이용해 만듦.
     '''
-    os.mkdir('C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\train')
-    os.mkdir('C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\valid')
+    os.mkdir(r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\train')
+    os.mkdir(r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\valid')
 
     train_image = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\train\image'
     train_label = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\train\label'
     valid_image = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\valid\image'
-    valid_label = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\valid\image'
+    valid_label = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\valid\label'
 
     train_files, valid_files = split_json_files(label_dir, ratio = 0.8, seed=42)
 
     copy_split_files(file_list=train_files, image_dir  = image_dir, label_dir = label_dir, out_image_dir = train_image, out_label_dir=train_label)
-    copy_split_files(file_list=valid_files, image_dir = image_dir, label_dir = label_dir, out_image_dir = valid_image, out_label_dir=valid_files)
+    copy_split_files(file_list=valid_files, image_dir = image_dir, label_dir = label_dir, out_image_dir = valid_image, out_label_dir=valid_label)
 
     train_ds = NutDataset(train_image, train_label)
     valid_ds = NutDataset(valid_image, valid_label) 
