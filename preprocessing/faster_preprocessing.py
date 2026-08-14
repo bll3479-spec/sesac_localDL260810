@@ -134,16 +134,66 @@ def copy_split_files(file_list, image_dir, label_dir, out_image_dir, out_label_d
             #shutil.copy2(src_lab, os.path.join(out_label_dir, f))
             print(f'{src_lab}를 {os.path.join(out_label_dir, f)}로')            
 
+#train, valid 쪼갠 뒤 각 폴더에 맞게 copy_split_files 수행
+def split_json_files(label_dir, ratio=0.8, seed = 42):
+    file_list = sorted([f for f in os.listdir(label_dir) if f.endswith('.json')])    #파일 리스트 = json으로 끝나는 f -> label_dir 내의 리스트 조회 및 정렬
+    random.seed(seed)                           #seed 기준 랜덤(특정한 방식으로), 파일 리스트 랜덤으로 섞기
+    random.shuffle(file_list)
 
-if __name__ == '__main__':
-    image_dir = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\images'
-    label_dir = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\labels'
+    split = int(len(file_list) * ratio)         #스플릿 = 파일 리스트의 길이에 ratio 곱한 뒤 정수화
+    return file_list[:split], file_list[split:] #파일리스트 돌려줌(~80, 0~20)
 
-    out_image_dir = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\sample_images'
-    out_label_dir = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\sampel_labels'
 
-    file_list = sorted([f for f in os.listdir(label_dir) if f.endswith('.json')])
-    copy_split_files(file_list, image_dir, label_dir, out_image_dir, out_label_dir)
+def get_nuts_dataloader(image_dir, label_dir):
+    '''
+    Nuts 이미지와 라벨을 바탕으로. train_image, train_label, valid_image, valid_label 추출함.
+    앞서 정의한 copy_split_files, split_json_files를 이용해 만듦.
+    '''
+    os.mkdir('C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\train')
+    os.mkdir('C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\valid')
+
+    train_image = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\train\image'
+    train_label = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\train\label'
+    valid_image = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\valid\image'
+    valid_label = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\valid\image'
+
+    train_files, valid_files = split_json_files(label_dir, ratio = 0.8, seed=42)
+
+    copy_split_files(file_list=train_files, image_dir  = image_dir, label_dir = label_dir, out_image_dir = train_image, out_label_dir=train_label)
+    copy_split_files(file_list=valid_files, image_dir = image_dir, label_dir = label_dir, out_image_dir = valid_image, out_label_dir=valid_files)
+
+    train_ds = NutDataset(train_image, train_label)
+    valid_ds = NutDataset(valid_image, valid_label) 
+
+    train_loader = DataLoader(train_ds, 
+                              batch_size = 2,
+                              shuffle = True,
+                              num_workers = 0,
+                              collate_fn = collate_fn)
+    valid_loader = DataLoader(valid_ds, 
+                              batch_size = 2,
+                              shuffle = True,
+                              num_workers = 0,
+                              collate_fn = collate_fn)
+
+    return train_loader, valid_loader
+
+#배치별로 데이터 묶음 -? 분류에서는 없어도 되지만, 세그멘테이션은 라벨이 여러 개라서 필요.
+#특히 object dectection에서 하나의 이미지에 여러 개의 객체가 있을 때 묶어줌. 
+#pytorch model zoo의 faster rcnn 쓸 때는 필수임.
+def collate_fn(batch):
+    return tuple(zip(*batch))
+
+
+# if __name__ == '__main__':
+#     image_dir = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\images'
+#     label_dir = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\labels'
+
+#     out_image_dir = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\sample_images'
+#     out_label_dir = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\sampel_labels'
+
+#     file_list = sorted([f for f in os.listdir(label_dir) if f.endswith('.json')])
+#     copy_split_files(file_list, image_dir, label_dir, out_image_dir, out_label_dir)
 
 #    trans = None
 
