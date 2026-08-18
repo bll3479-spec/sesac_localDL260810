@@ -107,7 +107,7 @@ class NutsDataset(Dataset):
 
         if random.random()> 0.5:
             image = image.transpose(Image.FLIP_TOP_BOTTOM)
-            mask = np.flipud(mask).reshape
+            mask = np.flipud(mask).copy()
         return image, mask
 
 def get_dataloader(image_dir, label_dir, image_size=512, batch_size=4, ratio=0.8, seed = 42):
