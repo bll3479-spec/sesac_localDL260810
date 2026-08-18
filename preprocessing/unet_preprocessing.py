@@ -87,23 +87,60 @@ class NutsDataset(Dataset):
 
         #리사이즈 -> 자료형이 다름. image(PIL) / mask(cv2)
         image = image.resize((self.image_size, self.image_size))
-        mask = cv2.resize(mask, (self.image_size, self.image_size), interpolation = cv2.INTER_NEARSET)
+        mask = cv2.resize(mask, (self.image_size, self.image_size), interpolation = cv2.INTER_NEAREST)
 
         #augmentation
         if self.augment:
             image, mask = self._augment(image,mask)
 
         #torch의 자료형 변환
-        image = self.iamge_transforms(image)
+        image = self.image_transforms(image)
         mask = torch.from_numpy(mask).long()
 
         return image, mask
 
-if __name__ == '__main__':
-    image_path = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\images\798592_594.jpg'
-    json_path = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\labels\798592_594.json'
+    #_augment?: 제작자 입장에서 '특별한 함수'임을 표현
+    def _augment(self, image, mask):
+        if random.random() > 0.5:
+            image = image.transpose(Image.FLIP_LEFT_RIGHT)
+            mask = np.fliplr(mask).copy()
 
-    image = cv2.imread(image_path)
-    image_h, image_w = image.shape[:2]
-    print(image_h, image_w)
-    bulid_mask(json_path=json_path, image_h=image_h, image_w=image_w)
+        if random.random()> 0.5:
+            image = image.transpose(Image.FLIP_TOP_BOTTOM)
+            mask = np.flipud(mask).reshape
+        return image, mask
+
+def get_dataloader(image_dir, label_dir, image_size=512, batch_size=4, ratio=0.8, seed = 42):
+    file_names = sorted([os.path.splitext(f)[0] for f in os.listdir(image_dir) if f.endswith('.jpg')])
+
+    random.seed(42)
+    random.shuffle(file_names)
+    split = int(len(file_names)*0.8)
+
+    train_files = file_names[:split]
+    valid_files = file_names[split:]
+    #NutsDataset의 필수 인자 = get_dataloader에서 필요한 것 꼴
+    train_dataset = NutsDataset(image_dir=image_dir, label_dir=label_dir, file_list= train_files, image_size=image_size, augment=True)
+    valid_dataset = NutsDataset(image_dir=image_dir, label_dir=label_dir, file_list= valid_files, image_size=image_size, augment=False)
+
+    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle = True)
+    valid_dataloader = DataLoader(valid_dataset, batch_size=batch_size, shuffle = False)
+
+    return train_dataloader, valid_dataloader
+
+
+
+
+if __name__ == '__main__':
+    image_path = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\images'
+    json_path = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\labels'
+
+    train_loader, valid_loader = get_dataloader(image_path, json_path, image_size=512, batch_size=4)
+    images, labels = next(iter(train_loader))
+    print(f'이미지 셰입 {images.shape}, 라벨 셰입{labels.shape}')
+
+
+    # image = cv2.imread(image_path)
+    # image_h, image_w = image.shape[:2]
+    # print(image_h, image_w)
+    # bulid_mask(json_path=json_path, image_h=image_h, image_w=image_w)
