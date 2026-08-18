@@ -58,9 +58,9 @@ class Unet(nn.Module):
 
         #인코더
         self.enc1 = ConvBlock(in_channel=in_channel, out_channel=base_ch)
-        self.enc2 = ConvBlock(base_ch, base_ch*2)
-        self.enc3 = ConvBlock(base_ch*2, base_ch*4)
-        self.enc4 = ConvBlock(base_ch*4, base_ch*8)
+        self.enc2 = DownBlock(base_ch, base_ch*2)
+        self.enc3 = DownBlock(base_ch*2, base_ch*4)
+        self.enc4 = DownBlock(base_ch*4, base_ch*8)
         #병목
         self.bottleneck = DownBlock(base_ch*8, base_ch*16)
         
