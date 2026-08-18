@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import cv2
 import re
 import shutil           #.sh / .bash
+import torch
 
 # 생성 구조 (Ultralytics 표준):
 #   Data/PeachDataset/yolo_dataset/
@@ -22,6 +23,11 @@ import albumentations as A
 from torchvision.models.detection import fasterrcnn_resnet50_fpn, FasterRCNN_ResNet50_FPN_Weights
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 
+#0818추가 (Unet 관련 모듈) 
+from models.unet import Unet, train
+from preprocessing.unet_preprocessing import get_dataloader, NUM_CLASSES
+
+
 def count_params(model):
     #requries_grad: True(훈련시킬 것, 변경 가능) , False(훈련 안 시킴, 변경 불가)
     #p.numel(파라미터의 구성요소 개수)
@@ -33,20 +39,31 @@ def count_params(model):
 
 
 if __name__ == '__main__':
-    model = fasterrcnn_resnet50_fpn(weights = FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
-    #Faster RCNN
-    #Backbone => 이미지 특징 추출 => 저수준 특징 추출(ResNet)
-    #RPN(Resion Proposal Networks) => Bounding Box의 후보 제안
-    #ROI Head => RPN을 보고 분류 수행, bbox의 사이즈 보정**
-    #Faster RCNN : 분류하고자 하는 객체의 개수 (+1 해야함, 얘는 배경까지(2-stage 모델이니까))
-    print(model)
-    
-    #ROI Head 변경
-    in_feautures = model.roi_heads.box_predictor.cls_score.in_features      #(모델 피쳐값 임시저장용)
+    import gc
 
-    #ROI Head도 2개의 부속품이 있음 -> Cls_score(분류) / Bbox_predictor(바운딩 박스 찾기)
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_feautures, num_classes = 1+1)
-    count_params(model)
+    # 1. Delete model and tensor variables
+
+    # Add any other variables pointing to the GPU
+
+    # 2. Force Python garbage collection
+    gc.collect()
+    torch.cuda.empty_cache()
+    image_dir = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\images'
+    label_dir = r'C:\Users\user\Desktop\Git\sesac_localDL260810\Data\NutsDataset\labels'
+
+    train_loader, valid_loader = get_dataloader(image_dir, label_dir, image_size=512, batch_size=2)
+
+    model = Unet(in_channel=3, num_classes= NUM_CLASSES)
+    count_params(model=model)
+
+    train(model, train_loader=train_loader, valid_loader=valid_loader, 
+          epochs=1, lr=1e-3, save_path=r'./unet_nuts.pth', num_classes=NUM_CLASSES)
+
+
+
+
+
+
 
 
 
@@ -75,8 +92,6 @@ if __name__ == '__main__':
 
     #5. (2,3,4 포함) 최종 증강 파이프라인
     #aug.pipe_augmentation()
-
-
 
 
 #딥러닝 시퀀스

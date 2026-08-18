@@ -5,12 +5,88 @@ import torch.nn.functional as F
 from tqdm import tqdm
 
 #기본 블록
+class ConvBlock(nn.Module):
+    #Sequential에서 실제 블록 흐름을 다 연결해놓고, forward는 명시만 진행
+    def __init__(self, in_channel, out_channel):
+        super().__init__()
+        self.block = nn.Sequential(
+            nn.Conv2d(in_channels=in_channel, out_channels=out_channel, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(out_channel),
+            nn.ReLU(inplace=True),
+
+            nn.Conv2d(in_channels=out_channel, out_channels=out_channel, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(out_channel),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        return self.block(x)
 
 #down 방향 블록
+class DownBlock(nn.Module):
+    def __init__(self, in_ch, out_ch):
+        super().__init__()
+        self.pool = nn.MaxPool2d(2)
+        self.conv = ConvBlock(in_ch, out_ch)
+
+    def forward(self, x):
+        # x = self.pool(x)
+        # x = self.conv(X)
+        return self.conv(self.pool(x))
 
 #up 방향 블록
+class UpBlock(nn.Module):
+    def __init__(self, in_ch, out_ch):
+        super().__init__()
+        self.up = nn.ConvTranspose2d(in_ch, in_ch//2, kernel_size=2, stride=2)
+        self.conv = ConvBlock(in_ch, out_ch)
 
+    def forward(self, x, skip):
+        x = self.up(x)
+
+        #paper에서 copy and crop에 해당하는 부분
+        #Skip connection
+        if x.shape != skip.shape:
+            x = F.interpolate(x, size=skip.shape[2:], mode = 'bilinear', align_corners=False)
+        x = torch.cat([skip, x], dim =1)
+        x = self.conv(x)
+        return x
 #최종 Unet
+class Unet(nn.Module):
+    def __init__(self, in_channel = 3, num_classes = 16, base_ch = 64):
+        super().__init__()
+
+        #인코더
+        self.enc1 = ConvBlock(in_channel=in_channel, out_channel=base_ch)
+        self.enc2 = ConvBlock(base_ch, base_ch*2)
+        self.enc3 = ConvBlock(base_ch*2, base_ch*4)
+        self.enc4 = ConvBlock(base_ch*4, base_ch*8)
+        #병목
+        self.bottleneck = DownBlock(base_ch*8, base_ch*16)
+        
+        #디코더
+        self.dec1 = UpBlock(base_ch*16, base_ch*8)
+        self.dec2 = UpBlock(base_ch*8, base_ch*4)
+        self.dec3 = UpBlock(base_ch*4, base_ch*2)
+        self.dec4 = UpBlock(base_ch*2, base_ch)
+
+        #최종
+        self.head = nn.Conv2d(base_ch, num_classes, kernel_size=1)
+
+    def forward(self, x):
+        s1 = self.enc1(x)
+        s2 = self.enc2(s1)
+        s3 = self.enc3(s2)
+        s4 = self.enc4(s3)
+
+        x = self.bottleneck(s4)
+
+        s5 = self.dec1(x, s4)
+        s6 = self.dec2(s5, s3)
+        s7 = self.dec3(s6, s2)
+        s8 = self.dec4(s7, s1)
+        return self.head(s8)
+
 
 #train
 def train_one_epoch(model, loader, criterion, optimizer, device):
@@ -70,3 +146,38 @@ def evaluate(model, Loader, criterion, device, num_classes = 16):
     mean_iou = (iou_sum[valid_cls] / iou_count[valid_cls]).mean().item()
 
     return mean_loss, mean_iou
+
+#train_one_epoch, evaluate
+def train(model, train_loader, valid_loader,
+          epochs=30, lr=1e-3, device=None,
+          save_path='unet_nuts.pth', num_classes=16):
+
+    if device is None:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    model.to(device)
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='min', patience=3, factor=0.5
+    )
+
+    best_iou = 0.0
+
+    for epoch in range(epochs):
+        train_loss = train_one_epoch(model, train_loader, criterion, optimizer, device)
+        val_loss, val_iou = evaluate(model, valid_loader, criterion, device, num_classes)
+        scheduler.step(val_loss)
+
+        print(f"Epoch [{epoch+1}/{epochs}]  "
+              f"train_loss: {train_loss:.4f}  "
+              f"val_loss: {val_loss:.4f}  "
+              f"mIoU: {val_iou:.4f}")
+
+        if val_iou > best_iou:
+            best_iou = val_iou
+            torch.save(model.state_dict(), save_path)
+            print(f"  → 모델 저장 (best mIoU: {best_iou:.4f})")
+
+    print(f"\n훈련 완료. 최고 mIoU: {best_iou:.4f}")
