@@ -64,3 +64,9 @@ def evaluate(model, Loader, criterion, device, num_classes = 16):
                 if union > 0:
                     iou_sum[cls] += inter/union
                     iou_count[cls] += 1
+
+    mean_loss = total_loss / len(Loader)
+    valid_cls = iou_count > 0   #count가 0보다 큰 클래스만 체크
+    mean_iou = (iou_sum[valid_cls] / iou_count[valid_cls]).mean().item()
+
+    return mean_loss, mean_iou
